@@ -8,7 +8,10 @@ Created on Sat Jan 12 15:04:26 2019
 
 #import pandas as pd
 #import numpy as np
-
+def tax(payoff, rate):
+    tax_price = payoff * (1 - rate * (payoff > 0))
+    return tax_price
+"""
 def tax( stock1_payoff , stock2_payoff , pos , tax_cost ):
     
     discount = 1
@@ -68,7 +71,7 @@ def tax( stock1_payoff , stock2_payoff , pos , tax_cost ):
             stock2_payoff = stock2_payoff * sell_cost
             
     return [ stock1_payoff , stock2_payoff ]
-            
+"""       
 
 def slip( price , payoff ):
     

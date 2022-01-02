@@ -9,7 +9,7 @@ Created on Tue Mar  3 16:23:13 2020
 import numpy as np
 #import new_dataloader
 
-import trading_period_by_gate_mean_new
+from trade_trend import trade_down_slope, trade_up_slope, trade_normal
 #import matrix_trading
 import os 
 import pandas as pd
@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import time
 import sys
 import time
-
+from multiprocessing import Pool
 path_to_2015compare = "./newstdcompare2015/" 
 path_to_2016compare = "./newstdcompare2016/" 
 path_to_2017compare = "./newstdcompare2017/" 
@@ -40,12 +40,24 @@ path_to_2018half = "./2018_halfmin/"
 ext_of_half = "_half_min.csv"
 model_name = '201611_only_stock_price_return'
 
-max_posion = 1000
-
+open, loss = 2, 1000#
+trading_cost_threshold = 0.003
+max_hold = 1000
+trading_cost = 0.002
+capital = 3000000000
 cost_gate_Train = False
 loading_data = False
-test_period = {2016 : [path_to_2016compare],2017 :[path_to_2017compare],2018 : [path_to_2018compare],2019 : [path_to_2019compare],2020 : [path_to_2020compare]}
-
+dtype = {
+    'S1' : str,
+    'S2' : str,
+    'VECMQ' : float,
+    'mu': float,
+    'Johansen_slope' : float,
+    'stdev' : float,
+    'model' : int,
+    'w1' : float,
+    'w2' : float
+}
 
 
 def test_reward():
@@ -62,56 +74,59 @@ def test_reward():
     action_list = []
     action_list2 = []
     check = 0
-
+    trading_history = []
     datelist = [f.split('_')[0] for f in os.listdir('D:/Allen/bitcoin_python/test')]
     #print(datelist)
     #print(datelist[167:])
     profit_count = 0
     count = 0
-    for date in sorted(datelist[:]): #決定交易要從何時開始
-    
+    #for date in sorted(datelist[:]): #決定交易要從何時開始
+    for date in range(1):
 
-        table = pd.read_csv('D:/Allen/bitcoin_python/Crypto_Currency_Cointegration/tmp/20211101_table.csv')
-        #mindata = pd.read_csv(path_to_average+date+ext_of_average)
-        tickdata = pd.read_csv('D:/Allen/bitcoin_python/test/2021-11-01_daily_min_price.csv')
-        #tickdata = tickdata.iloc[150:480]
+        table = pd.read_csv('D:/Allen/bitcoin_python/Crypto_Currency_Cointegration/tmp/20211102_table.csv', dtype = dtype)
+        tickdata = pd.read_csv('D:/Allen/bitcoin_python/test/2021-11-02_daily_min_price.csv')
         tickdata = tickdata.iloc[:480]
-        #print(tickdata)
         tickdata.index = np.arange(0,len(tickdata),1)  
         num = np.arange(0,len(table),1)
+        strategy = {
+                    "up_open_time" : open,
+                    "down_open_time" : open,
+                    "stop_loss_time" : loss,
+                    "maxhold" : max_hold,
+                    "cost_gate" : trading_cost_threshold,
+                    "capital" : capital,
+                    "tax_cost" : trading_cost
+                }
         #print(date)
-        for pair in num: #看table有幾列配對 依序讀入
-            profit,opennum,trade_capital,trading = [0], 0, 0, [0,0,0]
-            #print("action choose :",action_list[count_test])
-            open, loss = 2, 1000#
-            trading_cost_threshold = 0.003
-            if count == 1000 :
-                break
-            if table["model"][pair] == 1 or table["model"][pair] == 2 or table["model"][pair] == 3 :
-                profit,opennum,trade_capital,trading  = trading_period_by_gate_mean_new.pairs( pair ,150,  table , tickdata , tickdata , open ,open, loss ,tickdata, max_posion , 0.003, trading_cost_threshold, 300000000 )
-                count += 1
-            #print('交易貨幣',table.S1[pair],table.S2[pair])
-            #print("利潤 :",profit)
- 
-            profit_count += sum([p > 0 for p in profit])
-                  
-            #print("開倉次數 :",opennum)
- 
-            if opennum == 1 or opennum == 0:
-                check += 1
-                
-            total_reward += sum(profit)
-            total_num += opennum
-            total_trade[0] += trading[0]
-            total_trade[1] += trading[1]
-            total_trade[2] += trading[2]
-            
-
-            
-    print("total :",check)        
-            #print(count_test)
-    print("利潤  and 開倉次數 and 開倉有賺錢的次數/開倉次數:",total_reward ,total_num, profit_count/total_num)
-    print("開倉有賺錢次數 :",profit_count)
+        normal_table = table[table["model"]<4]
+        print(normal_table[:10])
+        total_normal = 0
+        for index, row in normal_table[:10].iterrows():
+            s1_tick = tickdata[row["S1"]]
+            s2_tick = tickdata[row["S2"]]
+            _trade, _profit, _capital, _return, _trading_rule,_history = trade_normal(s1_tick, s2_tick, row.to_dict(), strategy)
+            total_normal += _profit
+            total_trade[0] += _trading_rule[0]
+            total_trade[1] += _trading_rule[1]
+            total_trade[2] += _trading_rule[2] 
+            total_num += _trade
+            print(_trading_rule)
+            table.at[index,"_return"] = _return * 100
+            table.at[index,"_profit"] = _profit
+            trading_history.append({
+                "s1" : row["S1"],
+                "s2" : row["S2"],
+                "profit" : _profit * 1000,
+                "return" : _return * 100,
+                "capital" : _capital * 1000,
+                "trade" : _trade,
+                "history" : _history
+            })
+            print(f'each_profit : {_profit}')
+        profit_count += sum([p > 0 for p in table["_profit"]])
+        
+    print(f'利潤 : {total_normal} and 開倉次數 : {total_num} and 開倉有賺錢的次數/開倉次數 : {profit_count/total_num}')
+    print(f'開倉有賺錢次數 : {profit_count}')
     print("正常平倉 停損平倉 強迫平倉 :",total_trade[0],total_trade[1],total_trade[2])
     print("正常平倉率 :",total_trade[0]/total_num)
     print('Time used: {} sec'.format(time.time()-start_time))
