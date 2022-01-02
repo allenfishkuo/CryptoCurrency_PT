@@ -9,6 +9,8 @@ from cost import tax
 from integer import num_weight
 import numpy as np
 import datetime
+import matplotlib.pyplot as plt
+
 
 
 # {
@@ -201,7 +203,7 @@ def trade_down_slope(s1_tick, s2_tick, table, strategy):
     trade_capital = 0    
     trade_return = 0.0
     history = []
-
+    pos = [0]
 
     # 波動太小的配對不開倉
     if volaitlity_small(strategy, table):
@@ -260,7 +262,7 @@ def trade_down_slope(s1_tick, s2_tick, table, strategy):
                     "stock2_payoff" : stock2_payoff,
                     "type" : "尾盤強制平倉"
                 })  
-                break
+                #break
 
             elif (spread[i] - close[i]) < 0:  # 空倉碰到下開倉門檻即平倉
                 position = 666  # 平倉
@@ -276,8 +278,8 @@ def trade_down_slope(s1_tick, s2_tick, table, strategy):
                     "stock2_payoff" : stock2_payoff,
                     "type" : "正常平倉"
                 })  
-                break
-
+                #break
+        pos.append(position)
 
     trading_profit = sum(stock1_profit) + sum(stock2_profit)
 
@@ -300,7 +302,7 @@ def trade_down_slope(s1_tick, s2_tick, table, strategy):
 
 
 
-def trade_normal(s1_tick, s2_tick, table, strategy):
+def trade_normal(s1_tick, s2_tick, table, strategy,dump = False):
     trade_capital = 0
     cpA,cpB = 0,0
     trading_profit = 0.0
@@ -325,6 +327,7 @@ def trade_normal(s1_tick, s2_tick, table, strategy):
     close, up_open_val, down_open_val, up_stop_loss_val, down_stop_loss_val = build_open(spread, table, strategy)
 
     position = 0  # 持倉狀態，1:多倉，0:無倉，-1:空倉，-2：強制平倉 
+    pos = [0]
     stock1_profit = []
     stock2_profit = []
     spread_len = len(spread)
@@ -389,7 +392,7 @@ def trade_normal(s1_tick, s2_tick, table, strategy):
                     "type" : "尾盤強制平倉"
                 })  
                 print(f'{i} {w1} 張 {table["S1"]} {stock1_payoff} , {w2} 張 {table["S2"]} {stock2_payoff} 強制平空倉')
-                break
+                #break
 
             elif (spread[i] - close[i]) < 0:  # 空倉碰到下開倉門檻即平倉
                 position = 666  # 平倉
@@ -406,7 +409,7 @@ def trade_normal(s1_tick, s2_tick, table, strategy):
                     "type" : "正常平倉"
                 })  
                 print(f'{i} {w1} 張 {table["S1"]} {stock1_payoff} , {w2} 張 {table["S2"]} {stock2_payoff} 正常平空倉')
-                break
+                #break
             elif spread[i] - up_stop_loss_val[i] > 0 :
                 position = -2  # 碰到停損門檻，強制平倉
                 stock1_payoff, stock2_payoff = up_close(w1, w2,  s1_tick[i], s2_tick[i], strategy["tax_cost"], position)
@@ -422,7 +425,7 @@ def trade_normal(s1_tick, s2_tick, table, strategy):
                     "type" : "停損平倉"
                 })  
                 print(f'{i} {w1} 張 {table["S1"]} {stock1_payoff} , {w2} 張 {table["S2"]} {stock2_payoff} 停損平倉')
-                break
+                #break
 
         elif position == 1:  # 之前有開多倉，平多倉
 
@@ -441,7 +444,7 @@ def trade_normal(s1_tick, s2_tick, table, strategy):
                     "type" : "尾盤強制平倉"
                 })  
                 print(f'{i} {w1} 張 {table["S1"]} {stock1_payoff} , {w2} 張 {table["S2"]} {stock2_payoff} 強制平多倉')
-                break
+                #break
 
             elif (spread[i] - close[i]) > 0:
                 position = 666  # 平倉
@@ -458,7 +461,7 @@ def trade_normal(s1_tick, s2_tick, table, strategy):
                     "type" : "正常平倉"
                 })  
                 print(f'{i} {w1} 張 {table["S1"]} {stock1_payoff} , {w2} 張 {table["S2"]} {stock2_payoff} 正常平多倉')
-                break
+                #break
             elif spread[i] - down_stop_loss_val[i] < 0 :
                 position = -2  # 碰到停損門檻，強制平倉
                 stock1_payoff, stock2_payoff = down_close(w1, w2,  s1_tick[i], s2_tick[i], strategy["tax_cost"], position)
@@ -474,8 +477,8 @@ def trade_normal(s1_tick, s2_tick, table, strategy):
                     "type" : "停損平倉"
                 })  
                 print(f'{i} {w1} 張 {table["S1"]} {stock1_payoff} , {w2} 張 {table["S2"]} {stock2_payoff} 停損平倉倉')
-                break
-
+                #break
+        pos.append(position)
 
 
     trading_profit = sum(stock1_profit) + sum(stock2_profit)
@@ -493,6 +496,45 @@ def trade_normal(s1_tick, s2_tick, table, strategy):
 
     if trade > 0:  # 如果都沒有開倉，則報酬為0
         trade_return = trading_profit / trade_capital
+    if dump and trade > 0:
+            plot_spread( table["S1"], table["S2"], spread, 
+                        trading_profit, pos, position,  table, strategy)
 
 
     return trade, trading_profit, trade_capital, trade_return,trading_rule, history
+
+
+path_to_image = "./tmp3/"
+def plot_spread( stock1, stock2, spread, local_profit, pos, position, table, strategy):
+    close, up_open_val, down_open_val, up_stop_loss_val, down_stop_loss_val = build_open(spread, table, strategy)
+    plt.figure(figsize=(20, 10))
+    plt.plot(spread)
+    plt.vlines(150,np.mean(up_open_val),np.mean(down_open_val))
+    plt.hlines(up_open_val, 0, len(spread) - 1, 'b')
+    plt.hlines(down_open_val, 0, len(spread) - 1, 'b')
+    #plt.hlines(close + stop_loss, 0, len(spread) - 1, 'r')
+    #plt.hlines(close - stop_loss, 0, len(spread) - 1, 'r')
+    plt.hlines(close, 0, len(spread) - 1, 'g')
+    print(spread)
+    spread = spread[150:]
+    spread = spread.reset_index(drop = True)
+    print(spread)
+    for x in range(1, len(pos)):
+        if pos[x] != pos[x - 1] and pos[x] != 0:
+            plt.scatter(x-1+150, spread[x-1], color='', edgecolors='r', marker='o')
+    plt.title( ' s1:' + str(stock1) + ' s2:' + str(stock2) + ' up open threshold:' + str(strategy["up_open_time"]) + ' down open threshold:'
+              + str(strategy["up_open_time"]) + ' stop threshold:' + str(strategy["stop_loss_time"]))
+    if position == 666:
+        plt.xlabel('profit:' + str(local_profit) + ' normal close profit')
+    elif position == -2:
+        plt.xlabel('profit:' + str(local_profit) + ' stop close profit')
+    elif position == -3:
+        plt.xlabel('profit:' + str(local_profit) + ' fore_lag5')
+    elif position == -4:
+        plt.xlabel('profit:' + str(local_profit) + ' times up，forced close profit')
+    else:
+        plt.xlabel('Total open count:' + str(len(local_profit)) + ' ' + ', total profit: ' + str(sum(local_profit)))
+    plt.savefig(path_to_image+ '_' + str(stock1) + '_' + str(stock2) + '_' + str(
+        strategy["up_open_time"]) + '_' + str(strategy["up_open_time"]) + '_' + str(strategy["stop_loss_time"]) + '.png')
+    plt.close('all')
+
