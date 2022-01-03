@@ -333,7 +333,7 @@ def trade_normal(s1_tick, s2_tick, table, strategy,dump = False):
     spread_len = len(spread)
     w1 = 0
     w2 = 0
-    t = 150
+    t = 720
     for i in range(t, spread_len - 2):
         if position == 0 and i != spread_len - 3:  # 之前無開倉
         
@@ -509,19 +509,19 @@ def plot_spread( stock1, stock2, spread, local_profit, pos, position, table, str
     close, up_open_val, down_open_val, up_stop_loss_val, down_stop_loss_val = build_open(spread, table, strategy)
     plt.figure(figsize=(20, 10))
     plt.plot(spread)
-    plt.vlines(150,np.mean(up_open_val),np.mean(down_open_val))
+    plt.vlines(720,np.mean(up_open_val),np.mean(down_open_val))
     plt.hlines(up_open_val, 0, len(spread) - 1, 'b')
     plt.hlines(down_open_val, 0, len(spread) - 1, 'b')
     #plt.hlines(close + stop_loss, 0, len(spread) - 1, 'r')
     #plt.hlines(close - stop_loss, 0, len(spread) - 1, 'r')
     plt.hlines(close, 0, len(spread) - 1, 'g')
     print(spread)
-    spread = spread[150:]
+    spread = spread[720:]
     spread = spread.reset_index(drop = True)
     print(spread)
     for x in range(1, len(pos)):
         if pos[x] != pos[x - 1] and pos[x] != 0:
-            plt.scatter(x-1+150, spread[x-1], color='', edgecolors='r', marker='o')
+            plt.scatter(x-1+720, spread[x-1], color='', edgecolors='r', marker='o')
     plt.title( ' s1:' + str(stock1) + ' s2:' + str(stock2) + ' up open threshold:' + str(strategy["up_open_time"]) + ' down open threshold:'
               + str(strategy["up_open_time"]) + ' stop threshold:' + str(strategy["stop_loss_time"]))
     if position == 666:

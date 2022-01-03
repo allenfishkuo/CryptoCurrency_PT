@@ -22,14 +22,14 @@ import sys
 import time
 from multiprocessing import Pool
 
-path_to_tick = "D:/Allen/bitcoin_python/test"
+path_to_tick = "D:/Allen/bitcoin_python/test_30"
 path_to_compare = "D:/Allen/bitcoin_python/Crypto_Currency_Cointegration/tmp/"
 ext_of_compare = "_table.csv"
-path_to_profit = "D:/Allen/bitcoin_python/profit/"
+path_to_profit = "D:/Allen/bitcoin_python/profit2/"
 open, loss = 2, 1000#
-trading_cost_threshold = 0.003
+trading_cost_threshold = 0
 max_hold = 1000
-trading_cost = 0.002
+trading_cost = 0.001
 capital = 3000000000
 cost_gate_Train = False
 loading_data = True
@@ -62,8 +62,6 @@ def test_reward():
     ext_of_average = "_averagePrice_min.csv"
     path_to_minprice = "./"+str(time)+"/minprice/"
     ext_of_minprice = "_min_stock.csv"
-    range_trading_cost_threshold = np.arange(0.0015,0.008,0.0005)
-    number_of_label = len(range_trading_cost_threshold)
     total_reward = 0
     total_num = 0
     total_trade = [0,0,0]
@@ -76,6 +74,7 @@ def test_reward():
     #print(datelist[167:])
     profit_count = 0
     count = 0
+    total_normal = 0
     for date in sorted(datelist[:]): #決定交易要從何時開始
     #for date in range(1):
         open_list = []
@@ -85,7 +84,7 @@ def test_reward():
         open_num_list = []
         table = pd.read_csv(f'{path_to_compare}/{date}_table.csv', dtype = dtype)
         tickdata = pd.read_csv(f'{path_to_tick}/{date[:4]}-{date[4:6]}-{date[6:8]}_daily_min_price.csv')
-        tickdata = tickdata.iloc[:480]
+        tickdata = tickdata.iloc[:]
         tickdata.index = np.arange(0,len(tickdata),1)  
         num = np.arange(0,len(table),1)
         strategy = {
@@ -99,10 +98,9 @@ def test_reward():
                 }
         #print(date)
         normal_table = table[table["model"]<4]
-        print(normal_table[:10])
-        total_normal = 0
+        
         pair_data = []
-        for index, row in normal_table[:10].iterrows():
+        for index, row in normal_table[:].iterrows():
             s1_tick = tickdata[row["S1"]]
             s2_tick = tickdata[row["S2"]]
             
@@ -132,7 +130,7 @@ def test_reward():
             })
             
             print(f'each_profit : {_profit}')
-        store_data = return_dataframe(normal_table[:10],trade_capital_list,open_list,loss_list,reward_list,open_num_list) 
+        store_data = return_dataframe(normal_table[:],trade_capital_list,open_list,loss_list,reward_list,open_num_list) 
         print(store_data)
         profit_count += sum([p > 0 for p in table["_profit"]])
         if loading_data :
