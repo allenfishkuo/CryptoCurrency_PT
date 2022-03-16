@@ -1,0 +1,12 @@
+[workspace]
+restore_data_on_startup = True
+save_data_on_exit = True
+save_history = True
+save_non_project_files = False
+project_type = empty-project-type
+recent_files = ['download-kline.py', 'combine.py', 'utility.py', 'calculate_cointegration\\PTwithTimeTrend_AllStock.py', 'calculate_cointegration\\MDD.py', 'calculate_cointegration\\test_multiprocessing.py', 'calculate_cointegration\\trading_period_by_gate_mean_new.py', 'calculate_cointegration\\cost.py', 'calculate_cointegration\\trade_trend.py', 'calculate_cointegration\\main.py', 'calculate_cointegration\\test.py', 'correct_dataframe.py', 'enums.py', 'calculate_cointegration\\integer.py', 'one_page.py']
+
+[main]
+version = 0.2.0
+recent_files = []
+
